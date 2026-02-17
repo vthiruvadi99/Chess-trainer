@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Game Replay</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────────────────── */
+    header {
+      background: #16213e;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #0f3460;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    header h1 { font-size: 1.25rem; font-weight: 700; color: #e0e0e0; }
+    header h1 span { color: #64b5f6; }
+    .mode-badge {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+    .mode-badge.setup  { background: #0d2137; color: #4fc3f7; border: 1px solid #1565c0; }
+    .mode-badge.replay { background: #0d2b14; color: #81c784; border: 1px solid #2e7d32; }
+    .header-hint { margin-left: auto; font-size: 0.75rem; color: #78909c; font-style: italic; }
+
+    /* ── Layout ─────────────────────────────────────────────── */
+    .app {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* ── Sidebars ────────────────────────────────────────────── */
+    .sidebar {
+      width: 210px;
+      background: #16213e;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-shrink: 0;
+      border-right: 1px solid #0f3460;
+    }
+    .sidebar.right { border-right: none; border-left: 1px solid #0f3460; }
+    .section {
+      padding: 14px;
+      border-bottom: 1px solid #0f1924;
+    }
+    .section-title {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #5c6bc0;
+      margin-bottom: 10px;
+    }
+
+    /* ── Palette ─────────────────────────────────────────────── */
+    .palette-row { margin-bottom: 8px; }
+    .palette-label { font-size: 0.65rem; color: #78909c; margin-bottom: 5px; text-transform: uppercase; }
+    .palette-pieces { display: flex; gap: 3px; flex-wrap: wrap; }
+    .pal-piece {
+      width: 30px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      cursor: grab;
+      border-radius: 5px;
+      background: #0f3460;
+      border: 2px solid transparent;
+      transition: all .15s;
+      user-select: none;
+    }
+    .pal-piece:hover  { background: #1565c0; border-color: #42a5f5; }
+    .pal-piece.active { background: #1565c0; border-color: #42a5f5; box-shadow: 0 0 0 2px rgba(66,165,245,.4); }
+
+    /* ── Buttons ─────────────────────────────────────────────── */
+    .btn {
+      width: 100%; padding: 7px 10px;
+      border-radius: 6px; border: 1px solid #37474f;
+      background: #1e2d3d; color: #b0bec5;
+      font-size: 0.78rem; cursor: pointer; text-align: center;
+      margin-bottom: 5px; transition: all .15s;
+    }
+    .btn:hover { background: #263e55; color: #e0e0e0; border-color: #546e7a; }
+    .btn.danger  { border-color: #c62828; color: #ef9a9a; }
+    .btn.danger:hover  { background: #4e1010; color: #ffcdd2; }
+    .btn.primary { border-color: #1565c0; color: #90caf9; }
+    .btn.primary:hover { background: #0d2e4e; color: #bbdefb; }
+
+    .mode-btn {
+      width: 100%; padding: 8px 10px;
+      border-radius: 6px; font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; margin-bottom: 6px; transition: all .15s;
+    }
+    .mode-btn.setup-btn {
+      background: #0d1f35; color: #4fc3f7;
+      border: 2px solid #0d2137;
+    }
+    .mode-btn.setup-btn.active,
+    .mode-btn.setup-btn:hover { background: #013a5c; border-color: #4fc3f7; }
+
+    .mode-btn.replay-btn {
+      background: #0d2018; color: #81c784;
+      border: 2px solid #0d2b14;
+    }
+    .mode-btn.replay-btn.active,
+    .mode-btn.replay-btn:hover { background: #1b4023; border-color: #81c784; }
+
+    /* ── Turn selector ───────────────────────────────────────── */
+    .turn-row {
+      display: flex; gap: 6px; margin-bottom: 5px;
+    }
+    .turn-btn {
+      flex: 1; padding: 6px; border-radius: 5px;
+      font-size: 0.75rem; cursor: pointer; border: 2px solid #37474f;
+      background: #1e2d3d; color: #90a4ae; transition: all .15s;
+      text-align: center;
+    }
+    .turn-btn.active-white { background: #37474f; color: #fff; border-color: #b0bec5; }
+    .turn-btn.active-black { background: #1c1c1c; color: #bbb; border-color: #555; }
+
+    /* ── FEN ─────────────────────────────────────────────────── */
+    .fen-textarea {
+      width: 100%; min-height: 52px; resize: vertical;
+      background: #0f1924; border: 1px solid #37474f;
+      color: #cfd8dc; border-radius: 5px;
+      font-size: 0.68rem; font-family: monospace;
+      padding: 6px; margin-bottom: 6px;
+      line-height: 1.4;
+    }
+    .fen-textarea:focus { outline: none; border-color: #42a5f5; }
+
+    /* ── Board area ──────────────────────────────────────────── */
+    .board-area {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 20px; min-width: 0; background: #0f1924;
+    }
+
+    .board-frame {
+      display: flex; flex-direction: column; align-items: flex-start;
+    }
+    .coord-row {
+      display: flex; margin-left: 22px; margin-bottom: 2px;
+    }
+    .coord-row span {
+      font-size: 0.65rem; color: #5c6bc0; font-weight: 600;
+      text-align: center;
+    }
+    .board-with-ranks { display: flex; align-items: flex-start; }
+    .ranks-col {
+      display: flex; flex-direction: column; margin-right: 4px;
+    }
+    .ranks-col span {
+      font-size: 0.65rem; color: #5c6bc0; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, var(--sq));
+      grid-template-rows: repeat(8, var(--sq));
+      border: 3px solid #0f3460;
+      box-shadow: 0 8px 40px rgba(0,0,0,.7);
+      --sq: 68px;
+    }
+
+    .sq {
+      width: var(--sq); height: var(--sq);
+      display: flex; align-items: center; justify-content: center;
+      position: relative; cursor: pointer;
+    }
+    .sq.light { background: #f0d9b5; }
+    .sq.dark  { background: #b58863; }
+
+    .sq.drag-over  { outline: 3px solid rgba(66,165,245,.9) !important; outline-offset: -3px; }
+    .sq.selected   { background: rgba(255,235,59,.55) !important; }
+    .sq.lm-from.light { background: #cdd16f !important; }
+    .sq.lm-from.dark  { background: #aaa23a !important; }
+    .sq.lm-to.light   { background: #cdd16f !important; }
+    .sq.lm-to.dark    { background: #aaa23a !important; }
+
+    /* ── Pieces ──────────────────────────────────────────────── */
+    .piece {
+      font-size: 44px;
+      line-height: 1;
+      user-select: none;
+      cursor: grab;
+      position: relative; z-index: 1;
+      transition: transform .08s;
+    }
+    .piece:active { cursor: grabbing; transform: scale(1.15); }
+    .piece.w {
+      color: #fff;
+      -webkit-text-stroke: 1.2px #1a1a1a;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,.6));
+    }
+    .piece.b {
+      color: #1a1a1a;
+      -webkit-text-stroke: .4px #555;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,.4));
+    }
+
+    /* ── Move list ───────────────────────────────────────────── */
+    .move-list {
+      max-height: 240px; overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+    }
+    .move-pair {
+      display: flex; align-items: center;
+      padding: 3px 4px; border-radius: 4px; margin-bottom: 1px;
+    }
+    .move-pair:hover { background: #0f2d50; }
+    .move-num { color: #546e7a; width: 22px; flex-shrink: 0; font-size: 0.7rem; }
+    .half-move {
+      padding: 2px 6px; border-radius: 3px;
+      cursor: pointer; flex: 1; color: #b0bec5; transition: all .12s;
+    }
+    .half-move:hover  { background: #0d3260; color: #e0e0e0; }
+    .half-move.current { background: #1565c0; color: #fff; }
+
+    /* ── Nav controls ────────────────────────────────────────── */
+    .nav-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; }
+    .nav-btn {
+      padding: 7px 4px; background: #0f3460;
+      border: 1px solid #1565c0; color: #90caf9;
+      border-radius: 5px; cursor: pointer; font-size: 0.8rem;
+      text-align: center; transition: all .15s;
+    }
+    .nav-btn:hover { background: #1565c0; color: #fff; }
+
+    /* ── Turn indicator ──────────────────────────────────────── */
+    .turn-display {
+      display: flex; align-items: center; gap: 8px;
+      background: #0f1924; border-radius: 6px;
+      padding: 8px 12px; font-size: 0.8rem;
+    }
+    .turn-dot {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid #555; flex-shrink: 0;
+    }
+    .turn-dot.white { background: #f5f5f5; border-color: #aaa; }
+    .turn-dot.black { background: #212121; border-color: #666; }
+
+    /* ── Status bar ──────────────────────────────────────────── */
+    .status-bar {
+      background: #10182a; border-top: 1px solid #0f3460;
+      padding: 5px 16px; font-size: 0.72rem; color: #546e7a;
+      flex-shrink: 0;
+    }
+
+    /* ── Scrollbar ───────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #0f1924; }
+    ::-webkit-scrollbar-thumb { background: #37474f; border-radius: 3px; }
+
+    /* ── Tooltip ─────────────────────────────────────────────── */
+    [data-tip] { position: relative; }
+    [data-tip]:hover::after {
+      content: attr(data-tip);
+      position: absolute; bottom: 105%; left: 50%; transform: translateX(-50%);
+      background: #263238; color: #e0e0e0; font-size: 0.7rem;
+      padding: 3px 7px; border-radius: 4px; white-space: nowrap;
+      pointer-events: none; z-index: 100; border: 1px solid #37474f;
+    }
+
+    /* ── Responsive ──────────────────────────────────────────── */
+    @media (max-width: 960px) {
+      .sidebar { width: 170px; }
+      .board { --sq: 52px; }
+      .piece { font-size: 34px; }
+      .pal-piece { width: 26px; height: 26px; font-size: 16px; }
+    }
+    @media (max-width: 720px) {
+      .sidebar { display: none; }
+      .board { --sq: 44px; }
+      .piece { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>♟ Chess <span>Replay</span></h1>
+  <span id="modeBadge" class="mode-badge setup">Setup</span>
+  <span class="header-hint" id="headerHint">Drag pieces from the palette → place on the board</span>
+</header>
+
+<div class="app">
+
+  <!-- ── Left Sidebar ─────────────────────────────────────── -->
+  <div class="sidebar">
+
+    <div class="section">
+      <div class="section-title">Mode</div>
+      <button class="mode-btn setup-btn active" id="btnSetup" onclick="setMode('setup')">⚙ Setup Position</button>
+      <button class="mode-btn replay-btn" id="btnReplay" onclick="setMode('replay')">▶ Record Moves</button>
+    </div>
+
+    <div class="section" id="paletteSection">
+      <div class="section-title">Pieces  <span style="color:#546e7a;font-size:.6rem;font-weight:400;margin-left:4px;">(right-click board to remove)</span></div>
+      <div class="palette-row">
+        <div class="palette-label">White</div>
+        <div class="palette-pieces" id="whitePalette"></div>
+      </div>
+      <div class="palette-row">
+        <div class="palette-label">Black</div>
+        <div class="palette-pieces" id="blackPalette"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Board</div>
+      <button class="btn" onclick="resetToStart()">♟ Starting Position</button>
+      <button class="btn" onclick="clearBoard()">⬜ Clear Board</button>
+      <button class="btn" onclick="flipBoard()">⇅ Flip Board</button>
+    </div>
+
+    <div class="section" id="turnSection">
+      <div class="section-title">Turn to move</div>
+      <div class="turn-row">
+        <button class="turn-btn active-white" id="turnW" onclick="setTurn('w')">White</button>
+        <button class="turn-btn" id="turnB" onclick="setTurn('b')">Black</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">FEN</div>
+      <textarea class="fen-textarea" id="fenInput" placeholder="Paste FEN string…" spellcheck="false"></textarea>
+      <button class="btn primary" onclick="loadFEN()">Load FEN</button>
+      <button class="btn" onclick="copyFEN()">Copy current FEN</button>
+    </div>
+
+  </div>
+
+  <!-- ── Board Area ────────────────────────────────────────── -->
+  <div class="board-area">
+    <div class="board-frame" id="boardFrame">
+      <!-- built by JS -->
+    </div>
+  </div>
+
+  <!-- ── Right Sidebar ─────────────────────────────────────── -->
+  <div class="sidebar right">
+
+    <div class="section">
+      <div class="section-title">Turn</div>
+      <div class="turn-display" id="turnDisplay">
+        <div class="turn-dot white" id="turnDot"></div>
+        <span id="turnText">White to move</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Move History</div>
+      <div class="move-list" id="moveList">
+        <div style="color:#546e7a;font-size:.75rem;font-style:italic;">No moves yet.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Navigate</div>
+      <div class="nav-row">
+        <button class="nav-btn" onclick="goFirst()"  data-tip="First">⏮</button>
+        <button class="nav-btn" onclick="goPrev()"   data-tip="Previous">◀</button>
+        <button class="nav-btn" onclick="goNext()"   data-tip="Next">▶</button>
+        <button class="nav-btn" onclick="goLast()"   data-tip="Last">⏭</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Actions</div>
+      <button class="btn" onclick="undoMove()">↩ Undo Last Move</button>
+      <button class="btn danger" onclick="clearHistory()">✕ Clear History</button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Instructions</div>
+      <div style="font-size:.72rem;color:#546e7a;line-height:1.6;">
+        <b style="color:#7986cb">Setup:</b> Drag pieces from palette onto the board. Right-click a piece to remove it.<br><br>
+        <b style="color:#7986cb">Replay:</b> Drag pieces on the board to record moves. Use ◀ ▶ to review.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="status-bar" id="statusBar">Ready — set up your position and switch to Replay mode to record moves.</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────────────────────────────────────
+const PIECE_UNICODE = {
+  wK:'♔', wQ:'♕', wR:'♖', wB:'♗', wN:'♘', wP:'♙',
+  bK:'♚', bQ:'♛', bR:'♜', bB:'♝', bN:'♞', bP:'♟'
+};
+
+const WHITE_PIECES = ['wK','wQ','wR','wB','wN','wP'];
+const BLACK_PIECES = ['bK','bQ','bR','bB','bN','bP'];
+
+const PIECE_NAMES = {
+  K:'King', Q:'Queen', R:'Rook', B:'Bishop', N:'Knight', P:'Pawn'
+};
+
+const FILES = ['a','b','c','d','e','f','g','h'];
+const RANKS = [1,2,3,4,5,6,7,8];
+
+const STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────────────────
+const state = {
+  board: {},          // square -> pieceCode  e.g. 'e4' -> 'wP'
+  mode: 'setup',      // 'setup' | 'replay'
+  turn: 'w',
+  flipped: false,
+  history: [],        // [{from,to,piece,captured,boardSnap,turnBefore}]
+  histIdx: -1,        // index of currently-viewed move (-1 = base position)
+  baseBoard: {},      // snapshot of board when replay started
+  baseTurn: 'w',
+  // drag state
+  dragging: null,     // {source:'palette'|'board', piece, from}
+  selected: null,     // square selected by click
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOARD UTILITIES
+// ─────────────────────────────────────────────────────────────────────────────
+function squareColor(file, rank) {
+  return (FILES.indexOf(file) + rank) % 2 === 0 ? 'dark' : 'light';
+}
+
+function copyBoard(b) {
+  return Object.assign({}, b);
+}
+
+function pieceColor(code) { return code ? code[0] : null; }
+
+function squareFromNotation(sq) {
+  const file = sq[0], rank = parseInt(sq[1]);
+  return { file, rank };
+}
+
+// Simple move notation: e2→e4
+function moveNotation(from, to, piece, captured) {
+  const pName = piece ? piece[1] : '';
+  let n = '';
+  if (pName !== 'P') n += pName;
+  n += from + '→' + to;
+  if (captured) n += '×';
+  return n;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FEN
+// ─────────────────────────────────────────────────────────────────────────────
+function parseFEN(fen) {
+  const parts = fen.trim().split(' ');
+  const rows = parts[0].split('/');
+  const board = {};
+  for (let r = 0; r < 8; r++) {
+    let file = 0;
+    for (const ch of rows[r]) {
+      if (/\d/.test(ch)) { file += parseInt(ch); }
+      else {
+        const color = ch === ch.toUpperCase() ? 'w' : 'b';
+        const type  = ch.toUpperCase();
+        const sq = FILES[file] + (8 - r);
+        board[sq] = color + type;
+        file++;
+      }
+    }
+  }
+  const turn = parts[1] === 'b' ? 'b' : 'w';
+  return { board, turn };
+}
+
+function boardToFEN(board, turn) {
+  let fen = '';
+  for (let r = 8; r >= 1; r--) {
+    let empty = 0;
+    for (const f of FILES) {
+      const sq = f + r;
+      const pc = board[sq];
+      if (pc) {
+        if (empty) { fen += empty; empty = 0; }
+        const ch = pc[1];
+        fen += pc[0] === 'w' ? ch.toUpperCase() : ch.toLowerCase();
+      } else { empty++; }
+    }
+    if (empty) fen += empty;
+    if (r > 1) fen += '/';
+  }
+  return fen + ' ' + turn + ' KQkq - 0 1';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BUILD BOARD DOM
+// ─────────────────────────────────────────────────────────────────────────────
+function buildBoardDOM() {
+  const frame = document.getElementById('boardFrame');
+  frame.innerHTML = '';
+
+  const sq = getSquareSize();
+
+  // File labels (top)
+  const coordRow = document.createElement('div');
+  coordRow.className = 'coord-row';
+  coordRow.style.marginLeft = '22px';
+  const orderedFiles = state.flipped ? [...FILES].reverse() : FILES;
+  orderedFiles.forEach(f => {
+    const s = document.createElement('span');
+    s.textContent = f;
+    s.style.width = sq + 'px';
+    s.style.textAlign = 'center';
+    coordRow.appendChild(s);
+  });
+  frame.appendChild(coordRow);
+
+  const withRanks = document.createElement('div');
+  withRanks.className = 'board-with-ranks';
+
+  // Rank labels
+  const ranksCol = document.createElement('div');
+  ranksCol.className = 'ranks-col';
+  const orderedRanks = state.flipped ? [...RANKS] : [...RANKS].reverse();
+  orderedRanks.forEach(r => {
+    const s = document.createElement('span');
+    s.textContent = r;
+    s.style.height = sq + 'px';
+    s.style.width = '18px';
+    ranksCol.appendChild(s);
+  });
+  withRanks.appendChild(ranksCol);
+
+  // Board grid
+  const board = document.createElement('div');
+  board.className = 'board';
+  board.id = 'chessBoard';
+  board.style.setProperty('--sq', sq + 'px');
+
+  orderedRanks.forEach(rank => {
+    orderedFiles.forEach(file => {
+      const squareName = file + rank;
+      const div = createSquareEl(squareName, file, rank, sq);
+      board.appendChild(div);
+    });
+  });
+
+  withRanks.appendChild(board);
+  frame.appendChild(withRanks);
+}
+
+function getSquareSize() {
+  const w = window.innerWidth;
+  if (w < 720) return 44;
+  if (w < 960) return 52;
+  return 68;
+}
+
+function createSquareEl(squareName, file, rank, sq) {
+  const div = document.createElement('div');
+  div.className = 'sq ' + squareColor(file, rank);
+  div.id = 'sq_' + squareName;
+  div.dataset.square = squareName;
+  div.style.width = div.style.height = sq + 'px';
+
+  // Dragover
+  div.addEventListener('dragover', e => {
+    e.preventDefault();
+    div.classList.add('drag-over');
+  });
+  div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
+  div.addEventListener('drop', e => {
+    e.preventDefault();
+    div.classList.remove('drag-over');
+    handleDrop(squareName);
+  });
+
+  // Click to select / place active palette piece
+  div.addEventListener('click', e => {
+    if (e.target === div || e.target.classList.contains('piece')) {
+      handleSquareClick(squareName, e);
+    }
+  });
+
+  // Right click removes piece (setup mode)
+  div.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    if (state.mode === 'setup') {
+      delete state.board[squareName];
+      updateSquare(squareName);
+      setStatus('Piece removed from ' + squareName);
+    }
+  });
+
+  return div;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────────────────────────────────────
+function renderAll() {
+  buildBoardDOM();
+  updateAllSquares();
+  updateMoveList();
+  updateTurnDisplay();
+  updateModeUI();
+}
+
+function updateAllSquares() {
+  const orderedFiles = state.flipped ? [...FILES].reverse() : FILES;
+  const orderedRanks = state.flipped ? [...RANKS] : [...RANKS].reverse();
+  orderedRanks.forEach(rank => {
+    orderedFiles.forEach(file => {
+      updateSquare(file + rank);
+    });
+  });
+}
+
+function updateSquare(squareName) {
+  const div = document.getElementById('sq_' + squareName);
+  if (!div) return;
+
+  // Remove piece if present
+  const existing = div.querySelector('.piece');
+  if (existing) existing.remove();
+
+  const piece = state.board[squareName];
+  if (piece) {
+    const span = document.createElement('span');
+    span.className = 'piece ' + piece[0];
+    span.textContent = PIECE_UNICODE[piece];
+    span.dataset.piece = piece;
+    span.dataset.square = squareName;
+    span.draggable = true;
+    span.addEventListener('dragstart', e => {
+      state.dragging = { source: 'board', piece, from: squareName };
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => span.style.opacity = '.4', 0);
+    });
+    span.addEventListener('dragend', () => { span.style.opacity = '1'; });
+    div.appendChild(span);
+  }
+
+  // Highlight classes
+  div.classList.remove('selected', 'lm-from', 'lm-to');
+  if (state.selected === squareName) div.classList.add('selected');
+  if (state.histIdx >= 0 && state.history[state.histIdx]) {
+    const m = state.history[state.histIdx];
+    if (m.from === squareName) div.classList.add('lm-from');
+    if (m.to   === squareName) div.classList.add('lm-to');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DRAG & DROP
+// ─────────────────────────────────────────────────────────────────────────────
+function handleDrop(toSquare) {
+  const drag = state.dragging;
+  if (!drag) return;
+  state.dragging = null;
+  state.selected = null;
+
+  if (drag.source === 'palette') {
+    if (state.mode === 'setup') {
+      placePiece(drag.piece, toSquare);
+    }
+  } else if (drag.source === 'board') {
+    const fromSquare = drag.from;
+    if (fromSquare === toSquare) return;
+    if (state.mode === 'setup') {
+      movePieceSetup(fromSquare, toSquare);
+    } else {
+      movePieceReplay(fromSquare, toSquare, drag.piece);
+    }
+  }
+}
+
+function placePiece(pieceCode, toSquare) {
+  state.board[toSquare] = pieceCode;
+  updateSquare(toSquare);
+  setStatus('Placed ' + descPiece(pieceCode) + ' on ' + toSquare);
+}
+
+function movePieceSetup(from, to) {
+  const piece = state.board[from];
+  if (!piece) return;
+  delete state.board[from];
+  state.board[to] = piece;
+  updateSquare(from);
+  updateSquare(to);
+  setStatus('Moved ' + descPiece(piece) + ' from ' + from + ' to ' + to);
+}
+
+function movePieceReplay(from, to, piece) {
+  if (!piece) piece = state.board[from];
+  if (!piece) return;
+
+  // Trim future history if we branched
+  if (state.histIdx < state.history.length - 1) {
+    state.history = state.history.slice(0, state.histIdx + 1);
+    // Restore board to this point
+    if (state.histIdx >= 0) {
+      state.board = copyBoard(state.history[state.histIdx].boardAfter);
+      state.turn  = state.history[state.histIdx].turnAfter;
+    } else {
+      state.board = copyBoard(state.baseBoard);
+      state.turn  = state.baseTurn;
+    }
+  }
+
+  const captured = state.board[to] || null;
+  const boardBefore = copyBoard(state.board);
+
+  delete state.board[from];
+  state.board[to] = piece;
+
+  const boardAfter = copyBoard(state.board);
+  const turnBefore = state.turn;
+  const turnAfter  = state.turn === 'w' ? 'b' : 'w';
+  state.turn = turnAfter;
+
+  state.history.push({ from, to, piece, captured, boardBefore, boardAfter, turnBefore, turnAfter });
+  state.histIdx = state.history.length - 1;
+
+  updateAllSquares();
+  updateMoveList();
+  updateTurnDisplay();
+  setStatus(descPiece(piece) + ': ' + from + ' → ' + to + (captured ? ' (captures ' + descPiece(captured) + ')' : ''));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CLICK-TO-PLACE / CLICK-TO-MOVE
+// ─────────────────────────────────────────────────────────────────────────────
+function handleSquareClick(squareName, e) {
+  const activePal = document.querySelector('.pal-piece.active');
+
+  if (state.mode === 'setup') {
+    if (activePal) {
+      // Place active palette piece
+      const pieceCode = activePal.dataset.piece;
+      placePiece(pieceCode, squareName);
+      return;
+    }
+    // Select / deselect for move
+    if (state.selected && state.selected !== squareName) {
+      if (state.board[state.selected]) {
+        movePieceSetup(state.selected, squareName);
+        state.selected = null;
+        updateAllSquares();
+        return;
+      }
+    }
+    state.selected = (state.selected === squareName) ? null : (state.board[squareName] ? squareName : null);
+    updateAllSquares();
+  } else {
+    // Replay mode: click-to-move
+    if (state.selected) {
+      if (state.selected !== squareName) {
+        const piece = state.board[state.selected];
+        if (piece) {
+          movePieceReplay(state.selected, squareName, piece);
+          state.selected = null;
+          return;
+        }
+      }
+      state.selected = null;
+      updateAllSquares();
+    } else {
+      if (state.board[squareName]) {
+        state.selected = squareName;
+        updateAllSquares();
+      }
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HISTORY NAVIGATION
+// ─────────────────────────────────────────────────────────────────────────────
+function goToHistIdx(idx) {
+  if (state.history.length === 0) return;
+  idx = Math.max(-1, Math.min(idx, state.history.length - 1));
+  state.histIdx = idx;
+  state.selected = null;
+
+  if (idx === -1) {
+    state.board = copyBoard(state.baseBoard);
+    state.turn  = state.baseTurn;
+  } else {
+    state.board = copyBoard(state.history[idx].boardAfter);
+    state.turn  = state.history[idx].turnAfter;
+  }
+  updateAllSquares();
+  updateMoveList();
+  updateTurnDisplay();
+}
+
+function goFirst() { goToHistIdx(-1); }
+function goPrev()  { goToHistIdx(state.histIdx - 1); }
+function goNext()  { goToHistIdx(state.histIdx + 1); }
+function goLast()  { goToHistIdx(state.history.length - 1); }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODE
+// ─────────────────────────────────────────────────────────────────────────────
+function setMode(mode) {
+  if (mode === 'replay' && state.mode === 'setup') {
+    // Save current board as base
+    state.baseBoard = copyBoard(state.board);
+    state.baseTurn  = state.turn;
+    state.history   = [];
+    state.histIdx   = -1;
+  }
+  state.mode = mode;
+  state.selected = null;
+  updateModeUI();
+  updateAllSquares();
+  updateTurnDisplay();
+  document.getElementById('paletteSection').style.opacity = mode === 'setup' ? '1' : '.5';
+  const hint = mode === 'setup'
+    ? 'Drag pieces from the palette → place on the board. Right-click to remove.'
+    : 'Drag pieces on the board to record moves. Use ◀ ▶ to navigate.';
+  document.getElementById('headerHint').textContent = hint;
+  setStatus(mode === 'setup' ? 'Setup mode — arrange your position.' : 'Replay mode — start moving pieces to record the game.');
+}
+
+function updateModeUI() {
+  const badge = document.getElementById('modeBadge');
+  badge.textContent = state.mode === 'setup' ? 'Setup' : 'Replay';
+  badge.className   = 'mode-badge ' + state.mode;
+
+  document.getElementById('btnSetup').classList.toggle('active', state.mode === 'setup');
+  document.getElementById('btnReplay').classList.toggle('active', state.mode === 'replay');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TURN
+// ─────────────────────────────────────────────────────────────────────────────
+function setTurn(t) {
+  state.turn = t;
+  if (state.mode === 'setup') state.baseTurn = t;
+  updateTurnDisplay();
+}
+
+function updateTurnDisplay() {
+  const dot  = document.getElementById('turnDot');
+  const text = document.getElementById('turnText');
+  const tw   = document.getElementById('turnW');
+  const tb   = document.getElementById('turnB');
+  if (state.turn === 'w') {
+    dot.className = 'turn-dot white';
+    text.textContent = 'White to move';
+    tw.className = 'turn-btn active-white';
+    tb.className = 'turn-btn';
+  } else {
+    dot.className = 'turn-dot black';
+    text.textContent = 'Black to move';
+    tw.className = 'turn-btn';
+    tb.className = 'turn-btn active-black';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MOVE LIST
+// ─────────────────────────────────────────────────────────────────────────────
+function updateMoveList() {
+  const list = document.getElementById('moveList');
+  if (state.history.length === 0) {
+    list.innerHTML = '<div style="color:#546e7a;font-size:.75rem;font-style:italic;">No moves yet.</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  for (let i = 0; i < state.history.length; i += 2) {
+    const pair = document.createElement('div');
+    pair.className = 'move-pair';
+
+    const num = document.createElement('span');
+    num.className = 'move-num';
+    num.textContent = (Math.floor(i / 2) + 1) + '.';
+    pair.appendChild(num);
+
+    const m1 = state.history[i];
+    const wSpan = document.createElement('span');
+    wSpan.className = 'half-move' + (state.histIdx === i ? ' current' : '');
+    wSpan.textContent = moveNotation(m1.from, m1.to, m1.piece, m1.captured);
+    wSpan.onclick = () => goToHistIdx(i);
+    pair.appendChild(wSpan);
+
+    if (state.history[i + 1]) {
+      const m2 = state.history[i + 1];
+      const bSpan = document.createElement('span');
+      bSpan.className = 'half-move' + (state.histIdx === i + 1 ? ' current' : '');
+      bSpan.textContent = moveNotation(m2.from, m2.to, m2.piece, m2.captured);
+      bSpan.onclick = () => goToHistIdx(i + 1);
+      pair.appendChild(bSpan);
+    }
+
+    list.appendChild(pair);
+  }
+  // Scroll to bottom
+  list.scrollTop = list.scrollHeight;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PALETTE
+// ─────────────────────────────────────────────────────────────────────────────
+function buildPalette() {
+  buildPaletteGroup('whitePalette', WHITE_PIECES);
+  buildPaletteGroup('blackPalette', BLACK_PIECES);
+}
+
+function buildPaletteGroup(containerId, pieces) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  pieces.forEach(pieceCode => {
+    const el = document.createElement('div');
+    el.className = 'pal-piece ' + pieceCode[0];
+    el.textContent = PIECE_UNICODE[pieceCode];
+    el.dataset.piece = pieceCode;
+    el.draggable = true;
+    el.title = (pieceCode[0] === 'w' ? 'White ' : 'Black ') + PIECE_NAMES[pieceCode[1]];
+
+    el.addEventListener('dragstart', e => {
+      if (state.mode !== 'setup') { e.preventDefault(); return; }
+      state.dragging = { source: 'palette', piece: pieceCode };
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+
+    el.addEventListener('click', () => {
+      if (state.mode !== 'setup') return;
+      // Toggle active
+      const wasActive = el.classList.contains('active');
+      document.querySelectorAll('.pal-piece').forEach(p => p.classList.remove('active'));
+      if (!wasActive) el.classList.add('active');
+    });
+
+    container.appendChild(el);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOARD ACTIONS
+// ─────────────────────────────────────────────────────────────────────────────
+function clearBoard() {
+  state.board = {};
+  state.history = [];
+  state.histIdx = -1;
+  state.baseBoard = {};
+  state.selected = null;
+  updateAllSquares();
+  updateMoveList();
+  setStatus('Board cleared.');
+}
+
+function resetToStart() {
+  const parsed = parseFEN(STARTING_FEN);
+  state.board = parsed.board;
+  state.turn  = parsed.turn;
+  state.history = [];
+  state.histIdx = -1;
+  state.baseBoard = copyBoard(state.board);
+  state.baseTurn  = state.turn;
+  state.selected  = null;
+  updateAllSquares();
+  updateMoveList();
+  updateTurnDisplay();
+  setStatus('Reset to starting position.');
+}
+
+function flipBoard() {
+  state.flipped = !state.flipped;
+  state.selected = null;
+  renderAll();
+  setStatus('Board flipped.');
+}
+
+function undoMove() {
+  if (state.history.length === 0) { setStatus('No moves to undo.'); return; }
+  state.history.pop();
+  goToHistIdx(state.history.length - 1);
+  setStatus('Last move undone.');
+}
+
+function clearHistory() {
+  state.history = [];
+  state.histIdx = -1;
+  state.baseBoard = copyBoard(state.board);
+  state.baseTurn  = state.turn;
+  updateMoveList();
+  setStatus('Move history cleared.');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FEN
+// ─────────────────────────────────────────────────────────────────────────────
+function loadFEN() {
+  const raw = document.getElementById('fenInput').value.trim();
+  if (!raw) { setStatus('Please enter a FEN string.'); return; }
+  try {
+    const parsed = parseFEN(raw);
+    state.board = parsed.board;
+    state.turn  = parsed.turn;
+    state.history = [];
+    state.histIdx = -1;
+    state.baseBoard = copyBoard(state.board);
+    state.baseTurn  = state.turn;
+    state.selected  = null;
+    updateAllSquares();
+    updateMoveList();
+    updateTurnDisplay();
+    setStatus('FEN loaded successfully.');
+  } catch(err) {
+    setStatus('Invalid FEN string. Please check the format.');
+  }
+}
+
+function copyFEN() {
+  const fen = boardToFEN(state.board, state.turn);
+  navigator.clipboard.writeText(fen).then(() => {
+    setStatus('FEN copied: ' + fen);
+    document.getElementById('fenInput').value = fen;
+  }).catch(() => {
+    document.getElementById('fenInput').value = fen;
+    setStatus('FEN: ' + fen);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+function descPiece(code) {
+  if (!code) return '';
+  return (code[0] === 'w' ? 'White ' : 'Black ') + PIECE_NAMES[code[1]];
+}
+
+function setStatus(msg) {
+  document.getElementById('statusBar').textContent = msg;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KEYBOARD SHORTCUTS
+// ─────────────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'TEXTAREA') return;
+  switch(e.key) {
+    case 'ArrowLeft':  e.preventDefault(); goPrev();  break;
+    case 'ArrowRight': e.preventDefault(); goNext();  break;
+    case 'ArrowUp':    e.preventDefault(); goFirst(); break;
+    case 'ArrowDown':  e.preventDefault(); goLast();  break;
+    case 'Escape':
+      state.selected = null;
+      document.querySelectorAll('.pal-piece').forEach(p => p.classList.remove('active'));
+      updateAllSquares();
+      break;
+    case 'f': case 'F': flipBoard(); break;
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RESIZE
+// ─────────────────────────────────────────────────────────────────────────────
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => renderAll(), 200);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────────────────────
+function init() {
+  buildPalette();
+  // Start with starting position already loaded
+  const parsed = parseFEN(STARTING_FEN);
+  state.board    = parsed.board;
+  state.turn     = parsed.turn;
+  state.baseBoard = copyBoard(state.board);
+  state.baseTurn  = state.turn;
+  renderAll();
+}
+
+init();
+</script>
+</body>
+</html>
