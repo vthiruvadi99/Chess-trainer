@@ -14,7 +14,7 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow-y: auto;
     }
 
     /* ── Header ─────────────────────────────────────────────── */
@@ -27,6 +27,8 @@
       border-bottom: 1px solid #0f3460;
       flex-shrink: 0;
       z-index: 10;
+      position: sticky;
+      top: 0;
     }
     header h1 { font-size: 1.25rem; font-weight: 700; color: #e0e0e0; }
     header h1 span { color: #64b5f6; }
@@ -40,14 +42,14 @@
     }
     .mode-badge.setup  { background: #0d2137; color: #4fc3f7; border: 1px solid #1565c0; }
     .mode-badge.replay { background: #0d2b14; color: #81c784; border: 1px solid #2e7d32; }
+    .mode-badge.bot    { background: #2d1b00; color: #ffb74d; border: 1px solid #e65100; }
     .header-hint { margin-left: auto; font-size: 0.75rem; color: #78909c; font-style: italic; }
 
     /* ── Layout ─────────────────────────────────────────────── */
     .app {
       display: flex;
       flex: 1;
-      overflow: hidden;
-      min-height: 0;
+      overflow: visible;
     }
 
     /* ── Sidebars ────────────────────────────────────────────── */
@@ -125,6 +127,55 @@
     .mode-btn.replay-btn.active,
     .mode-btn.replay-btn:hover { background: #1b4023; border-color: #81c784; }
 
+    /* ── Bot Section ─────────────────────────────────────────── */
+    .bot-diff-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 3px;
+      margin-bottom: 8px;
+    }
+    .bot-diff-btn {
+      padding: 5px 2px;
+      border-radius: 5px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 2px solid #37474f;
+      background: #1e2d3d;
+      color: #78909c;
+      transition: all .15s;
+      text-align: center;
+    }
+    .bot-diff-btn:hover { background: #263e55; color: #e0e0e0; }
+    .bot-diff-btn.off.active    { background: #2c1810; color: #ef9a9a; border-color: #c62828; }
+    .bot-diff-btn.easy.active   { background: #0d2b14; color: #a5d6a7; border-color: #388e3c; }
+    .bot-diff-btn.medium.active { background: #0d1f35; color: #90caf9; border-color: #1565c0; }
+    .bot-diff-btn.hard.active   { background: #2d1b00; color: #ffcc80; border-color: #e65100; }
+
+    .bot-color-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .bot-color-btn {
+      flex: 1; padding: 5px; border-radius: 5px;
+      font-size: 0.72rem; cursor: pointer; border: 2px solid #37474f;
+      background: #1e2d3d; color: #90a4ae; transition: all .15s;
+      text-align: center;
+    }
+    .bot-color-btn.active-w { background: #37474f; color: #fff; border-color: #b0bec5; }
+    .bot-color-btn.active-b { background: #1c1c1c; color: #bbb; border-color: #555; }
+
+    .bot-status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .bot-status-badge.thinking { background: #2d1b00; color: #ffb74d; border: 1px solid #e65100; }
+
     /* ── Turn selector ───────────────────────────────────────── */
     .turn-row {
       display: flex; gap: 6px; margin-bottom: 5px;
@@ -197,6 +248,27 @@
     .sq.lm-from.dark  { background: #aaa23a !important; }
     .sq.lm-to.light   { background: #cdd16f !important; }
     .sq.lm-to.dark    { background: #aaa23a !important; }
+    .sq.in-check      { background: rgba(220, 40, 40, 0.7) !important; }
+
+    /* Legal move dots */
+    .sq.legal-dest::after {
+      content: '';
+      position: absolute;
+      width: 30%;
+      height: 30%;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.22);
+      pointer-events: none;
+      z-index: 2;
+    }
+    .sq.legal-dest.has-piece::after {
+      width: 100%;
+      height: 100%;
+      border-radius: 0;
+      background: none;
+      border: 4px solid rgba(0,0,0,0.22);
+      box-sizing: border-box;
+    }
 
     /* ── Pieces ──────────────────────────────────────────────── */
     .piece {
@@ -204,19 +276,20 @@
       line-height: 1;
       user-select: none;
       cursor: grab;
-      position: relative; z-index: 1;
+      position: relative; z-index: 3;
       transition: transform .08s;
     }
     .piece:active { cursor: grabbing; transform: scale(1.15); }
+    /* White pieces: use filled glyph colored white with dark outline */
     .piece.w {
-      color: #fff;
-      -webkit-text-stroke: 1.2px #1a1a1a;
-      filter: drop-shadow(0 2px 3px rgba(0,0,0,.6));
+      color: #fffff0;
+      -webkit-text-stroke: 1.4px #1a1a1a;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
     }
     .piece.b {
       color: #1a1a1a;
-      -webkit-text-stroke: .4px #555;
-      filter: drop-shadow(0 2px 3px rgba(0,0,0,.4));
+      -webkit-text-stroke: 0.4px #555;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4));
     }
 
     /* ── Move list ───────────────────────────────────────────── */
@@ -261,6 +334,21 @@
     .turn-dot.white { background: #f5f5f5; border-color: #aaa; }
     .turn-dot.black { background: #212121; border-color: #666; }
 
+    /* ── Game result banner ──────────────────────────────────── */
+    .result-banner {
+      display: none;
+      background: #1e2d3d;
+      border: 2px solid #1565c0;
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #ffb74d;
+    }
+    .result-banner.visible { display: block; }
+
     /* ── Status bar ──────────────────────────────────────────── */
     .status-bar {
       background: #10182a; border-top: 1px solid #0f3460;
@@ -300,7 +388,7 @@
 <body>
 
 <header>
-  <h1>♟ Chess <span>Replay</span></h1>
+  <h1>♟ Chess <span>Trainer</span></h1>
   <span id="modeBadge" class="mode-badge setup">Setup</span>
   <span class="header-hint" id="headerHint">Drag pieces from the palette → place on the board</span>
 </header>
@@ -343,6 +431,24 @@
       </div>
     </div>
 
+    <!-- ── Bot Section ─────────────────────────────────────── -->
+    <div class="section" id="botSection">
+      <div class="section-title">Bot Opponent</div>
+      <div class="bot-diff-row">
+        <button class="bot-diff-btn off active" id="botBtnOff"    onclick="setBotDiff('off')">Off</button>
+        <button class="bot-diff-btn easy"       id="botBtnEasy"   onclick="setBotDiff('easy')">Easy</button>
+        <button class="bot-diff-btn medium"     id="botBtnMedium" onclick="setBotDiff('medium')">Med</button>
+        <button class="bot-diff-btn hard"       id="botBtnHard"   onclick="setBotDiff('hard')">Hard</button>
+      </div>
+      <div id="botColorSection">
+        <div class="section-title" style="margin-top:2px;margin-bottom:6px;">I play as</div>
+        <div class="bot-color-row">
+          <button class="bot-color-btn active-w" id="playAsW" onclick="setPlayAs('w')">White</button>
+          <button class="bot-color-btn"          id="playAsB" onclick="setPlayAs('b')">Black</button>
+        </div>
+      </div>
+    </div>
+
     <div class="section">
       <div class="section-title">FEN</div>
       <textarea class="fen-textarea" id="fenInput" placeholder="Paste FEN string…" spellcheck="false"></textarea>
@@ -371,6 +477,7 @@
     </div>
 
     <div class="section">
+      <div class="result-banner" id="resultBanner"></div>
       <div class="section-title">Move History</div>
       <div class="move-list" id="moveList">
         <div style="color:#546e7a;font-size:.75rem;font-style:italic;">No moves yet.</div>
@@ -396,8 +503,9 @@
     <div class="section">
       <div class="section-title">Instructions</div>
       <div style="font-size:.72rem;color:#546e7a;line-height:1.6;">
-        <b style="color:#7986cb">Setup:</b> Drag pieces from palette onto the board. Right-click a piece to remove it.<br><br>
-        <b style="color:#7986cb">Replay:</b> Drag pieces on the board to record moves. Use ◀ ▶ to review.
+        <b style="color:#7986cb">Setup:</b> Drag pieces from palette. Right-click to remove.<br><br>
+        <b style="color:#7986cb">Replay:</b> Move pieces to record. Use ◀ ▶ to review.<br><br>
+        <b style="color:#7986cb">Bot:</b> Select difficulty, then Record Moves to play!
       </div>
     </div>
 
@@ -410,8 +518,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
+// Use filled (black) Unicode glyphs for BOTH colors; CSS handles coloring.
 const PIECE_UNICODE = {
-  wK:'♔', wQ:'♕', wR:'♖', wB:'♗', wN:'♘', wP:'♙',
+  wK:'♚', wQ:'♛', wR:'♜', wB:'♝', wN:'♞', wP:'♟',
   bK:'♚', bQ:'♛', bR:'♜', bB:'♝', bN:'♞', bP:'♟'
 };
 
@@ -431,18 +540,357 @@ const STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 // STATE
 // ─────────────────────────────────────────────────────────────────────────────
 const state = {
-  board: {},          // square -> pieceCode  e.g. 'e4' -> 'wP'
+  board: {},
   mode: 'setup',      // 'setup' | 'replay'
   turn: 'w',
   flipped: false,
-  history: [],        // [{from,to,piece,captured,boardSnap,turnBefore}]
-  histIdx: -1,        // index of currently-viewed move (-1 = base position)
-  baseBoard: {},      // snapshot of board when replay started
+  history: [],        // [{from,to,piece,captured,boardAfter,turnAfter}]
+  histIdx: -1,
+  baseBoard: {},
   baseTurn: 'w',
-  // drag state
-  dragging: null,     // {source:'palette'|'board', piece, from}
-  selected: null,     // square selected by click
+  dragging: null,
+  selected: null,
+  legalDests: null,   // Set of legal destination squares for selected piece
+  gameOver: false,
 };
+
+const BOT = {
+  difficulty: 'off',  // 'off' | 'easy' | 'medium' | 'hard'
+  userColor: 'w',     // color the human plays
+  thinking: false,
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CHESS ENGINE — MOVE GENERATION
+// ─────────────────────────────────────────────────────────────────────────────
+const PIECE_VALUES = { P: 100, N: 320, B: 330, R: 500, Q: 900, K: 20000 };
+
+// Piece-square tables (white's perspective, row 0 = rank 8, row 7 = rank 1)
+const PST = {
+  P: [
+    [  0,  0,  0,  0,  0,  0,  0,  0],
+    [ 50, 50, 50, 50, 50, 50, 50, 50],
+    [ 10, 10, 20, 30, 30, 20, 10, 10],
+    [  5,  5, 10, 25, 25, 10,  5,  5],
+    [  0,  0,  0, 20, 20,  0,  0,  0],
+    [  5, -5,-10,  0,  0,-10, -5,  5],
+    [  5, 10, 10,-20,-20, 10, 10,  5],
+    [  0,  0,  0,  0,  0,  0,  0,  0]
+  ],
+  N: [
+    [-50,-40,-30,-30,-30,-30,-40,-50],
+    [-40,-20,  0,  0,  0,  0,-20,-40],
+    [-30,  0, 10, 15, 15, 10,  0,-30],
+    [-30,  5, 15, 20, 20, 15,  5,-30],
+    [-30,  0, 15, 20, 20, 15,  0,-30],
+    [-30,  5, 10, 15, 15, 10,  5,-30],
+    [-40,-20,  0,  5,  5,  0,-20,-40],
+    [-50,-40,-30,-30,-30,-30,-40,-50]
+  ],
+  B: [
+    [-20,-10,-10,-10,-10,-10,-10,-20],
+    [-10,  0,  0,  0,  0,  0,  0,-10],
+    [-10,  0,  5, 10, 10,  5,  0,-10],
+    [-10,  5,  5, 10, 10,  5,  5,-10],
+    [-10,  0, 10, 10, 10, 10,  0,-10],
+    [-10, 10, 10, 10, 10, 10, 10,-10],
+    [-10,  5,  0,  0,  0,  0,  5,-10],
+    [-20,-10,-10,-10,-10,-10,-10,-20]
+  ],
+  R: [
+    [  0,  0,  0,  0,  0,  0,  0,  0],
+    [  5, 10, 10, 10, 10, 10, 10,  5],
+    [ -5,  0,  0,  0,  0,  0,  0, -5],
+    [ -5,  0,  0,  0,  0,  0,  0, -5],
+    [ -5,  0,  0,  0,  0,  0,  0, -5],
+    [ -5,  0,  0,  0,  0,  0,  0, -5],
+    [ -5,  0,  0,  0,  0,  0,  0, -5],
+    [  0,  0,  0,  5,  5,  0,  0,  0]
+  ],
+  Q: [
+    [-20,-10,-10, -5, -5,-10,-10,-20],
+    [-10,  0,  0,  0,  0,  0,  0,-10],
+    [-10,  0,  5,  5,  5,  5,  0,-10],
+    [ -5,  0,  5,  5,  5,  5,  0, -5],
+    [  0,  0,  5,  5,  5,  5,  0, -5],
+    [-10,  5,  5,  5,  5,  5,  0,-10],
+    [-10,  0,  5,  0,  0,  0,  0,-10],
+    [-20,-10,-10, -5, -5,-10,-10,-20]
+  ],
+  K: [
+    [-30,-40,-40,-50,-50,-40,-40,-30],
+    [-30,-40,-40,-50,-50,-40,-40,-30],
+    [-30,-40,-40,-50,-50,-40,-40,-30],
+    [-30,-40,-40,-50,-50,-40,-40,-30],
+    [-20,-30,-30,-40,-40,-30,-30,-20],
+    [-10,-20,-20,-20,-20,-20,-20,-10],
+    [ 20, 20,  0,  0,  0,  0, 20, 20],
+    [ 20, 30, 10,  0,  0, 10, 30, 20]
+  ]
+};
+
+function getPstScore(pieceCode, fi, rank) {
+  const type = pieceCode[1];
+  const color = pieceCode[0];
+  const table = PST[type];
+  if (!table) return 0;
+  const row = color === 'w' ? (8 - rank) : (rank - 1);
+  return table[row][fi];
+}
+
+function evaluate(board) {
+  let score = 0;
+  for (const [sq, piece] of Object.entries(board)) {
+    const fi = FILES.indexOf(sq[0]);
+    const rank = parseInt(sq[1]);
+    const val = (PIECE_VALUES[piece[1]] || 0) + getPstScore(piece, fi, rank);
+    score += piece[0] === 'w' ? val : -val;
+  }
+  return score; // positive = good for white
+}
+
+function engineMakeMove(board, from, to) {
+  const nb = Object.assign({}, board);
+  const piece = nb[from];
+  delete nb[from];
+  nb[to] = piece;
+  // Auto-promote pawns to queen
+  if (piece === 'wP' && to[1] === '8') nb[to] = 'wQ';
+  if (piece === 'bP' && to[1] === '1') nb[to] = 'bQ';
+  return nb;
+}
+
+function addSliding(board, color, fi, rank, moves, dirs) {
+  const from = FILES[fi] + rank;
+  for (const [df, dr] of dirs) {
+    let nfi = fi + df, nr = rank + dr;
+    while (nfi >= 0 && nfi < 8 && nr >= 1 && nr <= 8) {
+      const sq = FILES[nfi] + nr;
+      const pc = board[sq];
+      if (pc) {
+        if (pc[0] !== color) moves.push({ from, to: sq });
+        break;
+      }
+      moves.push({ from, to: sq });
+      nfi += df; nr += dr;
+    }
+  }
+}
+
+function addKnight(board, color, fi, rank, moves) {
+  const from = FILES[fi] + rank;
+  for (const [df, dr] of [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]]) {
+    const nfi = fi + df, nr = rank + dr;
+    if (nfi < 0 || nfi >= 8 || nr < 1 || nr > 8) continue;
+    const sq = FILES[nfi] + nr;
+    if (board[sq] && board[sq][0] === color) continue;
+    moves.push({ from, to: sq });
+  }
+}
+
+function addKing(board, color, fi, rank, moves) {
+  const from = FILES[fi] + rank;
+  for (let df = -1; df <= 1; df++) {
+    for (let dr = -1; dr <= 1; dr++) {
+      if (df === 0 && dr === 0) continue;
+      const nfi = fi + df, nr = rank + dr;
+      if (nfi < 0 || nfi >= 8 || nr < 1 || nr > 8) continue;
+      const sq = FILES[nfi] + nr;
+      if (board[sq] && board[sq][0] === color) continue;
+      moves.push({ from, to: sq });
+    }
+  }
+}
+
+function addPawn(board, color, fi, rank, moves) {
+  const dir = color === 'w' ? 1 : -1;
+  const startRank = color === 'w' ? 2 : 7;
+  const from = FILES[fi] + rank;
+
+  // Forward push
+  const nr1 = rank + dir;
+  if (nr1 >= 1 && nr1 <= 8) {
+    const sq1 = FILES[fi] + nr1;
+    if (!board[sq1]) {
+      moves.push({ from, to: sq1 });
+      // Double push from starting rank
+      if (rank === startRank) {
+        const nr2 = rank + 2 * dir;
+        const sq2 = FILES[fi] + nr2;
+        if (!board[sq2]) moves.push({ from, to: sq2 });
+      }
+    }
+  }
+  // Diagonal captures
+  for (const df of [-1, 1]) {
+    const nfi = fi + df;
+    if (nfi < 0 || nfi >= 8) continue;
+    const nr = rank + dir;
+    if (nr < 1 || nr > 8) continue;
+    const sq = FILES[nfi] + nr;
+    if (board[sq] && board[sq][0] !== color) moves.push({ from, to: sq });
+  }
+}
+
+function getPseudoMoves(board, color) {
+  const moves = [];
+  for (const [sq, piece] of Object.entries(board)) {
+    if (piece[0] !== color) continue;
+    const fi = FILES.indexOf(sq[0]);
+    const rank = parseInt(sq[1]);
+    switch (piece[1]) {
+      case 'P': addPawn(board, color, fi, rank, moves); break;
+      case 'N': addKnight(board, color, fi, rank, moves); break;
+      case 'B': addSliding(board, color, fi, rank, moves, [[1,1],[1,-1],[-1,1],[-1,-1]]); break;
+      case 'R': addSliding(board, color, fi, rank, moves, [[1,0],[-1,0],[0,1],[0,-1]]); break;
+      case 'Q': addSliding(board, color, fi, rank, moves, [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]); break;
+      case 'K': addKing(board, color, fi, rank, moves); break;
+    }
+  }
+  return moves;
+}
+
+function isInCheck(board, color) {
+  let kingSquare = null;
+  for (const [sq, pc] of Object.entries(board)) {
+    if (pc === color + 'K') { kingSquare = sq; break; }
+  }
+  if (!kingSquare) return true;
+  const opp = color === 'w' ? 'b' : 'w';
+  return getPseudoMoves(board, opp).some(m => m.to === kingSquare);
+}
+
+function getLegalMoves(board, color) {
+  return getPseudoMoves(board, color).filter(move => {
+    const nb = engineMakeMove(board, move.from, move.to);
+    return !isInCheck(nb, color);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MINIMAX WITH ALPHA-BETA
+// ─────────────────────────────────────────────────────────────────────────────
+function orderMoves(moves, board) {
+  return moves.sort((a, b) => {
+    const va = board[a.to] ? (PIECE_VALUES[board[a.to][1]] || 0) : 0;
+    const vb = board[b.to] ? (PIECE_VALUES[board[b.to][1]] || 0) : 0;
+    return vb - va;
+  });
+}
+
+function minimax(board, depth, alpha, beta, isMax) {
+  if (depth === 0) return evaluate(board);
+  const color = isMax ? 'w' : 'b';
+  const moves = orderMoves(getLegalMoves(board, color), board);
+  if (moves.length === 0) {
+    if (isInCheck(board, color)) return isMax ? -90000 - depth : 90000 + depth;
+    return 0; // stalemate
+  }
+  if (isMax) {
+    let best = -Infinity;
+    for (const m of moves) {
+      const v = minimax(engineMakeMove(board, m.from, m.to), depth - 1, alpha, beta, false);
+      if (v > best) best = v;
+      if (v > alpha) alpha = v;
+      if (beta <= alpha) break;
+    }
+    return best;
+  } else {
+    let best = Infinity;
+    for (const m of moves) {
+      const v = minimax(engineMakeMove(board, m.from, m.to), depth - 1, alpha, beta, true);
+      if (v < best) best = v;
+      if (v < beta) beta = v;
+      if (beta <= alpha) break;
+    }
+    return best;
+  }
+}
+
+function getBotMove(board, botColor, difficulty) {
+  const moves = getLegalMoves(board, botColor);
+  if (moves.length === 0) return null;
+
+  if (difficulty === 'easy') {
+    // Mostly random, occasionally picks a capture
+    const caps = moves.filter(m => board[m.to]);
+    if (caps.length > 0 && Math.random() < 0.5) {
+      return caps[Math.floor(Math.random() * caps.length)];
+    }
+    return moves[Math.floor(Math.random() * moves.length)];
+  }
+
+  const depth = difficulty === 'medium' ? 2 : 4;
+  const isMax = botColor === 'w';
+  // Shuffle for variety among equal-value moves
+  const shuffled = moves.slice().sort(() => Math.random() - 0.5);
+  let bestMove = shuffled[0];
+  let bestVal = isMax ? -Infinity : Infinity;
+
+  for (const m of shuffled) {
+    const v = minimax(engineMakeMove(board, m.from, m.to), depth - 1, -Infinity, Infinity, !isMax);
+    if (isMax ? v > bestVal : v < bestVal) {
+      bestVal = v;
+      bestMove = m;
+    }
+  }
+  return bestMove;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOT SCHEDULING
+// ─────────────────────────────────────────────────────────────────────────────
+function scheduleBot() {
+  if (BOT.difficulty === 'off' || BOT.thinking || state.mode !== 'replay' || state.gameOver) return;
+  const botColor = BOT.userColor === 'w' ? 'b' : 'w';
+  if (state.turn !== botColor) return;
+
+  BOT.thinking = true;
+  setStatus('Bot is thinking…');
+
+  const delay = BOT.difficulty === 'hard' ? 150 : 60;
+  setTimeout(() => {
+    const move = getBotMove(state.board, botColor, BOT.difficulty);
+    BOT.thinking = false;
+
+    if (!move) {
+      if (isInCheck(state.board, botColor)) {
+        showResult('Checkmate! You win!');
+      } else {
+        showResult("Stalemate — it's a draw.");
+      }
+      return;
+    }
+
+    const piece = state.board[move.from];
+    movePieceReplay(move.from, move.to, piece, true /* fromBot */);
+
+    // Check if human is now in checkmate/stalemate
+    const humanMoves = getLegalMoves(state.board, BOT.userColor);
+    if (humanMoves.length === 0) {
+      if (isInCheck(state.board, BOT.userColor)) {
+        showResult('Checkmate — Bot wins!');
+      } else {
+        showResult("Stalemate — it's a draw.");
+      }
+    }
+  }, delay);
+}
+
+function showResult(msg) {
+  state.gameOver = true;
+  const banner = document.getElementById('resultBanner');
+  banner.textContent = msg;
+  banner.classList.add('visible');
+  setStatus(msg);
+}
+
+function clearResult() {
+  state.gameOver = false;
+  const banner = document.getElementById('resultBanner');
+  banner.textContent = '';
+  banner.classList.remove('visible');
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BOARD UTILITIES
@@ -450,19 +898,9 @@ const state = {
 function squareColor(file, rank) {
   return (FILES.indexOf(file) + rank) % 2 === 0 ? 'dark' : 'light';
 }
-
-function copyBoard(b) {
-  return Object.assign({}, b);
-}
-
+function copyBoard(b) { return Object.assign({}, b); }
 function pieceColor(code) { return code ? code[0] : null; }
 
-function squareFromNotation(sq) {
-  const file = sq[0], rank = parseInt(sq[1]);
-  return { file, rank };
-}
-
-// Simple move notation: e2→e4
 function moveNotation(from, to, piece, captured) {
   const pName = piece ? piece[1] : '';
   let n = '';
@@ -486,8 +924,7 @@ function parseFEN(fen) {
       else {
         const color = ch === ch.toUpperCase() ? 'w' : 'b';
         const type  = ch.toUpperCase();
-        const sq = FILES[file] + (8 - r);
-        board[sq] = color + type;
+        board[FILES[file] + (8 - r)] = color + type;
         file++;
       }
     }
@@ -501,12 +938,10 @@ function boardToFEN(board, turn) {
   for (let r = 8; r >= 1; r--) {
     let empty = 0;
     for (const f of FILES) {
-      const sq = f + r;
-      const pc = board[sq];
+      const pc = board[f + r];
       if (pc) {
         if (empty) { fen += empty; empty = 0; }
-        const ch = pc[1];
-        fen += pc[0] === 'w' ? ch.toUpperCase() : ch.toLowerCase();
+        fen += pc[0] === 'w' ? pc[1].toUpperCase() : pc[1].toLowerCase();
       } else { empty++; }
     }
     if (empty) fen += empty;
@@ -521,10 +956,8 @@ function boardToFEN(board, turn) {
 function buildBoardDOM() {
   const frame = document.getElementById('boardFrame');
   frame.innerHTML = '';
-
   const sq = getSquareSize();
 
-  // File labels (top)
   const coordRow = document.createElement('div');
   coordRow.className = 'coord-row';
   coordRow.style.marginLeft = '22px';
@@ -541,7 +974,6 @@ function buildBoardDOM() {
   const withRanks = document.createElement('div');
   withRanks.className = 'board-with-ranks';
 
-  // Rank labels
   const ranksCol = document.createElement('div');
   ranksCol.className = 'ranks-col';
   const orderedRanks = state.flipped ? [...RANKS] : [...RANKS].reverse();
@@ -554,7 +986,6 @@ function buildBoardDOM() {
   });
   withRanks.appendChild(ranksCol);
 
-  // Board grid
   const board = document.createElement('div');
   board.className = 'board';
   board.id = 'chessBoard';
@@ -562,9 +993,7 @@ function buildBoardDOM() {
 
   orderedRanks.forEach(rank => {
     orderedFiles.forEach(file => {
-      const squareName = file + rank;
-      const div = createSquareEl(squareName, file, rank, sq);
-      board.appendChild(div);
+      board.appendChild(createSquareEl(file + rank, file, rank, sq));
     });
   });
 
@@ -586,33 +1015,15 @@ function createSquareEl(squareName, file, rank, sq) {
   div.dataset.square = squareName;
   div.style.width = div.style.height = sq + 'px';
 
-  // Dragover
-  div.addEventListener('dragover', e => {
-    e.preventDefault();
-    div.classList.add('drag-over');
-  });
+  div.addEventListener('dragover', e => { e.preventDefault(); div.classList.add('drag-over'); });
   div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
-  div.addEventListener('drop', e => {
-    e.preventDefault();
-    div.classList.remove('drag-over');
-    handleDrop(squareName);
-  });
-
-  // Click to select / place active palette piece
+  div.addEventListener('drop', e => { e.preventDefault(); div.classList.remove('drag-over'); handleDrop(squareName); });
   div.addEventListener('click', e => {
-    if (e.target === div || e.target.classList.contains('piece')) {
-      handleSquareClick(squareName, e);
-    }
+    if (e.target === div || e.target.classList.contains('piece')) handleSquareClick(squareName, e);
   });
-
-  // Right click removes piece (setup mode)
   div.addEventListener('contextmenu', e => {
     e.preventDefault();
-    if (state.mode === 'setup') {
-      delete state.board[squareName];
-      updateSquare(squareName);
-      setStatus('Piece removed from ' + squareName);
-    }
+    if (state.mode === 'setup') { delete state.board[squareName]; updateSquare(squareName); setStatus('Piece removed from ' + squareName); }
   });
 
   return div;
@@ -632,18 +1043,13 @@ function renderAll() {
 function updateAllSquares() {
   const orderedFiles = state.flipped ? [...FILES].reverse() : FILES;
   const orderedRanks = state.flipped ? [...RANKS] : [...RANKS].reverse();
-  orderedRanks.forEach(rank => {
-    orderedFiles.forEach(file => {
-      updateSquare(file + rank);
-    });
-  });
+  orderedRanks.forEach(rank => { orderedFiles.forEach(file => { updateSquare(file + rank); }); });
 }
 
 function updateSquare(squareName) {
   const div = document.getElementById('sq_' + squareName);
   if (!div) return;
 
-  // Remove piece if present
   const existing = div.querySelector('.piece');
   if (existing) existing.remove();
 
@@ -665,12 +1071,27 @@ function updateSquare(squareName) {
   }
 
   // Highlight classes
-  div.classList.remove('selected', 'lm-from', 'lm-to');
+  div.classList.remove('selected', 'lm-from', 'lm-to', 'in-check', 'legal-dest', 'has-piece');
+
   if (state.selected === squareName) div.classList.add('selected');
+
   if (state.histIdx >= 0 && state.history[state.histIdx]) {
     const m = state.history[state.histIdx];
     if (m.from === squareName) div.classList.add('lm-from');
     if (m.to   === squareName) div.classList.add('lm-to');
+  }
+
+  // Legal move destinations
+  if (state.legalDests && state.legalDests.has(squareName)) {
+    div.classList.add('legal-dest');
+    if (piece) div.classList.add('has-piece');
+  }
+
+  // Check highlight
+  if (state.mode === 'replay' && BOT.difficulty !== 'off') {
+    if (piece && piece[1] === 'K' && isInCheck(state.board, piece[0])) {
+      div.classList.add('in-check');
+    }
   }
 }
 
@@ -682,19 +1103,14 @@ function handleDrop(toSquare) {
   if (!drag) return;
   state.dragging = null;
   state.selected = null;
+  state.legalDests = null;
 
   if (drag.source === 'palette') {
-    if (state.mode === 'setup') {
-      placePiece(drag.piece, toSquare);
-    }
+    if (state.mode === 'setup') placePiece(drag.piece, toSquare);
   } else if (drag.source === 'board') {
-    const fromSquare = drag.from;
-    if (fromSquare === toSquare) return;
-    if (state.mode === 'setup') {
-      movePieceSetup(fromSquare, toSquare);
-    } else {
-      movePieceReplay(fromSquare, toSquare, drag.piece);
-    }
+    if (drag.from === toSquare) return;
+    if (state.mode === 'setup') movePieceSetup(drag.from, toSquare);
+    else movePieceReplay(drag.from, toSquare, drag.piece, false);
   }
 }
 
@@ -714,14 +1130,42 @@ function movePieceSetup(from, to) {
   setStatus('Moved ' + descPiece(piece) + ' from ' + from + ' to ' + to);
 }
 
-function movePieceReplay(from, to, piece) {
+function movePieceReplay(from, to, piece, fromBot) {
   if (!piece) piece = state.board[from];
   if (!piece) return;
 
-  // Trim future history if we branched
+  // Enforce rules when bot is enabled
+  if (BOT.difficulty !== 'off' && !fromBot) {
+    if (state.gameOver) { setStatus('Game over. Clear history to start a new game.'); return; }
+    if (BOT.thinking) { setStatus('Wait for the bot to finish thinking…'); return; }
+
+    // User can only move their own color
+    if (pieceColor(piece) !== BOT.userColor) {
+      setStatus("That's the bot's piece!");
+      state.selected = null;
+      state.legalDests = null;
+      updateAllSquares();
+      return;
+    }
+    // Must be correct turn
+    if (state.turn !== BOT.userColor) {
+      setStatus("It's not your turn yet.");
+      return;
+    }
+    // Must be a legal move
+    const legal = getLegalMoves(state.board, state.turn);
+    if (!legal.some(m => m.from === from && m.to === to)) {
+      setStatus('Illegal move!');
+      state.selected = null;
+      state.legalDests = null;
+      updateAllSquares();
+      return;
+    }
+  }
+
+  // Trim future history if branching
   if (state.histIdx < state.history.length - 1) {
     state.history = state.history.slice(0, state.histIdx + 1);
-    // Restore board to this point
     if (state.histIdx >= 0) {
       state.board = copyBoard(state.history[state.histIdx].boardAfter);
       state.turn  = state.history[state.histIdx].turnAfter;
@@ -732,39 +1176,43 @@ function movePieceReplay(from, to, piece) {
   }
 
   const captured = state.board[to] || null;
-  const boardBefore = copyBoard(state.board);
-
   delete state.board[from];
   state.board[to] = piece;
 
+  // Auto-promote pawns to queen
+  if (piece === 'wP' && to[1] === '8') state.board[to] = 'wQ';
+  if (piece === 'bP' && to[1] === '1') state.board[to] = 'bQ';
+
   const boardAfter = copyBoard(state.board);
-  const turnBefore = state.turn;
   const turnAfter  = state.turn === 'w' ? 'b' : 'w';
   state.turn = turnAfter;
+  state.selected = null;
+  state.legalDests = null;
 
-  state.history.push({ from, to, piece, captured, boardBefore, boardAfter, turnBefore, turnAfter });
+  state.history.push({ from, to, piece, captured, boardAfter, turnAfter });
   state.histIdx = state.history.length - 1;
 
   updateAllSquares();
   updateMoveList();
   updateTurnDisplay();
-  setStatus(descPiece(piece) + ': ' + from + ' → ' + to + (captured ? ' (captures ' + descPiece(captured) + ')' : ''));
+
+  const capMsg = captured ? ' (captures ' + descPiece(captured) + ')' : '';
+  setStatus(descPiece(piece) + ': ' + from + ' → ' + to + capMsg);
+
+  if (!fromBot) scheduleBot();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CLICK-TO-PLACE / CLICK-TO-MOVE
+// CLICK TO SELECT / MOVE
 // ─────────────────────────────────────────────────────────────────────────────
 function handleSquareClick(squareName, e) {
   const activePal = document.querySelector('.pal-piece.active');
 
   if (state.mode === 'setup') {
     if (activePal) {
-      // Place active palette piece
-      const pieceCode = activePal.dataset.piece;
-      placePiece(pieceCode, squareName);
+      placePiece(activePal.dataset.piece, squareName);
       return;
     }
-    // Select / deselect for move
     if (state.selected && state.selected !== squareName) {
       if (state.board[state.selected]) {
         movePieceSetup(state.selected, squareName);
@@ -776,21 +1224,40 @@ function handleSquareClick(squareName, e) {
     state.selected = (state.selected === squareName) ? null : (state.board[squareName] ? squareName : null);
     updateAllSquares();
   } else {
-    // Replay mode: click-to-move
+    // Replay mode
+    if (BOT.thinking) return;
+
     if (state.selected) {
       if (state.selected !== squareName) {
         const piece = state.board[state.selected];
         if (piece) {
-          movePieceReplay(state.selected, squareName, piece);
+          movePieceReplay(state.selected, squareName, piece, false);
           state.selected = null;
+          state.legalDests = null;
           return;
         }
       }
       state.selected = null;
+      state.legalDests = null;
       updateAllSquares();
     } else {
-      if (state.board[squareName]) {
+      const piece = state.board[squareName];
+      if (piece) {
+        // When bot is on, only allow selecting own pieces on own turn
+        if (BOT.difficulty !== 'off') {
+          if (pieceColor(piece) !== BOT.userColor || state.turn !== BOT.userColor) {
+            setStatus(pieceColor(piece) === BOT.userColor ? "Wait for the bot's turn to finish." : "That's the bot's piece!");
+            return;
+          }
+        }
         state.selected = squareName;
+        // Compute legal destinations for the selected piece
+        if (BOT.difficulty !== 'off') {
+          const legal = getLegalMoves(state.board, state.turn);
+          state.legalDests = new Set(legal.filter(m => m.from === squareName).map(m => m.to));
+        } else {
+          state.legalDests = null;
+        }
         updateAllSquares();
       }
     }
@@ -805,6 +1272,7 @@ function goToHistIdx(idx) {
   idx = Math.max(-1, Math.min(idx, state.history.length - 1));
   state.histIdx = idx;
   state.selected = null;
+  state.legalDests = null;
 
   if (idx === -1) {
     state.board = copyBoard(state.baseBoard);
@@ -828,32 +1296,67 @@ function goLast()  { goToHistIdx(state.history.length - 1); }
 // ─────────────────────────────────────────────────────────────────────────────
 function setMode(mode) {
   if (mode === 'replay' && state.mode === 'setup') {
-    // Save current board as base
     state.baseBoard = copyBoard(state.board);
     state.baseTurn  = state.turn;
     state.history   = [];
     state.histIdx   = -1;
+    clearResult();
   }
   state.mode = mode;
   state.selected = null;
+  state.legalDests = null;
   updateModeUI();
   updateAllSquares();
   updateTurnDisplay();
   document.getElementById('paletteSection').style.opacity = mode === 'setup' ? '1' : '.5';
-  const hint = mode === 'setup'
-    ? 'Drag pieces from the palette → place on the board. Right-click to remove.'
-    : 'Drag pieces on the board to record moves. Use ◀ ▶ to navigate.';
-  document.getElementById('headerHint').textContent = hint;
-  setStatus(mode === 'setup' ? 'Setup mode — arrange your position.' : 'Replay mode — start moving pieces to record the game.');
+
+  if (mode === 'replay' && BOT.difficulty !== 'off') {
+    document.getElementById('headerHint').textContent = 'Playing vs Bot (' + BOT.difficulty + ') — you play as ' + (BOT.userColor === 'w' ? 'White' : 'Black');
+    setStatus('Bot mode active — make your move!');
+    // If bot goes first (user plays black), schedule it
+    if (BOT.userColor === 'b' && state.turn === 'w') scheduleBot();
+  } else if (mode === 'replay') {
+    document.getElementById('headerHint').textContent = 'Drag pieces on the board to record moves. Use ◀ ▶ to navigate.';
+    setStatus('Replay mode — start moving pieces to record the game.');
+  } else {
+    document.getElementById('headerHint').textContent = 'Drag pieces from the palette → place on the board. Right-click to remove.';
+    setStatus('Setup mode — arrange your position.');
+  }
 }
 
 function updateModeUI() {
   const badge = document.getElementById('modeBadge');
-  badge.textContent = state.mode === 'setup' ? 'Setup' : 'Replay';
-  badge.className   = 'mode-badge ' + state.mode;
-
+  if (state.mode === 'replay' && BOT.difficulty !== 'off') {
+    badge.textContent = 'vs Bot';
+    badge.className = 'mode-badge bot';
+  } else {
+    badge.textContent = state.mode === 'setup' ? 'Setup' : 'Replay';
+    badge.className = 'mode-badge ' + state.mode;
+  }
   document.getElementById('btnSetup').classList.toggle('active', state.mode === 'setup');
   document.getElementById('btnReplay').classList.toggle('active', state.mode === 'replay');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOT UI
+// ─────────────────────────────────────────────────────────────────────────────
+function setBotDiff(diff) {
+  BOT.difficulty = diff;
+  document.querySelectorAll('.bot-diff-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('botBtn' + diff.charAt(0).toUpperCase() + diff.slice(1)).classList.add('active');
+
+  const colorSection = document.getElementById('botColorSection');
+  colorSection.style.display = diff === 'off' ? 'none' : 'block';
+
+  updateModeUI();
+  setStatus(diff === 'off' ? 'Bot disabled.' : 'Bot set to ' + diff + '. Switch to Record Moves to start playing.');
+}
+
+function setPlayAs(color) {
+  BOT.userColor = color;
+  document.getElementById('playAsW').className = 'bot-color-btn' + (color === 'w' ? ' active-w' : '');
+  document.getElementById('playAsB').className = 'bot-color-btn' + (color === 'b' ? ' active-b' : '');
+  setStatus('You will play as ' + (color === 'w' ? 'White' : 'Black') + '.');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -892,7 +1395,6 @@ function updateMoveList() {
     list.innerHTML = '<div style="color:#546e7a;font-size:.75rem;font-style:italic;">No moves yet.</div>';
     return;
   }
-
   list.innerHTML = '';
   for (let i = 0; i < state.history.length; i += 2) {
     const pair = document.createElement('div');
@@ -921,7 +1423,6 @@ function updateMoveList() {
 
     list.appendChild(pair);
   }
-  // Scroll to bottom
   list.scrollTop = list.scrollHeight;
 }
 
@@ -952,7 +1453,6 @@ function buildPaletteGroup(containerId, pieces) {
 
     el.addEventListener('click', () => {
       if (state.mode !== 'setup') return;
-      // Toggle active
       const wasActive = el.classList.contains('active');
       document.querySelectorAll('.pal-piece').forEach(p => p.classList.remove('active'));
       if (!wasActive) el.classList.add('active');
@@ -971,6 +1471,8 @@ function clearBoard() {
   state.histIdx = -1;
   state.baseBoard = {};
   state.selected = null;
+  state.legalDests = null;
+  clearResult();
   updateAllSquares();
   updateMoveList();
   setStatus('Board cleared.');
@@ -985,6 +1487,8 @@ function resetToStart() {
   state.baseBoard = copyBoard(state.board);
   state.baseTurn  = state.turn;
   state.selected  = null;
+  state.legalDests = null;
+  clearResult();
   updateAllSquares();
   updateMoveList();
   updateTurnDisplay();
@@ -994,14 +1498,24 @@ function resetToStart() {
 function flipBoard() {
   state.flipped = !state.flipped;
   state.selected = null;
+  state.legalDests = null;
   renderAll();
   setStatus('Board flipped.');
 }
 
 function undoMove() {
   if (state.history.length === 0) { setStatus('No moves to undo.'); return; }
-  state.history.pop();
-  goToHistIdx(state.history.length - 1);
+  if (BOT.difficulty !== 'off' && state.history.length >= 2) {
+    // Undo both the bot's last move and the player's last move
+    state.history.pop();
+    state.history.pop();
+    clearResult();
+    goToHistIdx(state.history.length - 1);
+  } else {
+    state.history.pop();
+    clearResult();
+    goToHistIdx(state.history.length - 1);
+  }
   setStatus('Last move undone.');
 }
 
@@ -1010,6 +1524,8 @@ function clearHistory() {
   state.histIdx = -1;
   state.baseBoard = copyBoard(state.board);
   state.baseTurn  = state.turn;
+  state.legalDests = null;
+  clearResult();
   updateMoveList();
   setStatus('Move history cleared.');
 }
@@ -1029,6 +1545,8 @@ function loadFEN() {
     state.baseBoard = copyBoard(state.board);
     state.baseTurn  = state.turn;
     state.selected  = null;
+    state.legalDests = null;
+    clearResult();
     updateAllSquares();
     updateMoveList();
     updateTurnDisplay();
@@ -1073,6 +1591,7 @@ document.addEventListener('keydown', e => {
     case 'ArrowDown':  e.preventDefault(); goLast();  break;
     case 'Escape':
       state.selected = null;
+      state.legalDests = null;
       document.querySelectorAll('.pal-piece').forEach(p => p.classList.remove('active'));
       updateAllSquares();
       break;
@@ -1094,12 +1613,13 @@ window.addEventListener('resize', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 function init() {
   buildPalette();
-  // Start with starting position already loaded
   const parsed = parseFEN(STARTING_FEN);
   state.board    = parsed.board;
   state.turn     = parsed.turn;
   state.baseBoard = copyBoard(state.board);
   state.baseTurn  = state.turn;
+  // Hide bot color section until a difficulty is chosen
+  document.getElementById('botColorSection').style.display = 'none';
   renderAll();
 }
 
